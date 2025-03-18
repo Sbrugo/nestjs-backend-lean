@@ -1,18 +1,32 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-argument */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { Model } from 'mongoose';
 import { User, UserDocument } from '../schemas/user.schema';
 import { CreateUserDto, UpdateUserDto } from '../dto/user.dto';
+
 @Injectable()
 export class UsersService {
   constructor(@InjectModel(User.name) private userModel: Model<UserDocument>) {}
 
   async createUser(user: CreateUserDto): Promise<User> {
-    return await this.userModel.create(user);
+    try {
+      const createdUser = await this.userModel.create(user);
+      return createdUser;
+    } catch (error) {
+      console.error(error);
+      if (error.code === 11000) {
+        throw new BadRequestException('Username already exists');
+      }
+      throw new InternalServerErrorException('Something went wrong');
+    }
   }
 
   async findById(id: string): Promise<User> {
